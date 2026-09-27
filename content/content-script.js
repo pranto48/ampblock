@@ -210,16 +210,33 @@
 
       for (let i = 0; i < elements.length; i++) {
         const el = elements[i];
-        if (!processedNodes.has(el)) {
-          processedNodes.add(el);
-          el.style.setProperty('display', 'none', 'important');
-          el.style.setProperty('visibility', 'hidden', 'important');
-          el.style.setProperty('height', '0', 'important');
-          el.style.setProperty('min-height', '0', 'important');
-          el.style.setProperty('margin', '0', 'important');
-          el.style.setProperty('padding', '0', 'important');
-          newlyBlocked++;
+        if (!el || processedNodes.has(el)) continue;
+
+        // Never touch or hide AMPass Secure Vault or AmpBlock elements
+        const idLower = (el.id || '').toLowerCase();
+        const classLower = (el.className || '').toString().toLowerCase();
+        if (
+          idLower.startsWith('ampblock') ||
+          idLower.startsWith('ampass') ||
+          idLower.includes('ampass') ||
+          classLower.includes('ampass') ||
+          classLower.includes('ampblock') ||
+          el.hasAttribute('data-ampass-detected') ||
+          el.hasAttribute('data-ampass-has-continue') ||
+          el.hasAttribute('data-ampass-submitting') ||
+          (el.closest && el.closest('[id^="ampass"], [id^="ampblock"], [class*="ampass"]'))
+        ) {
+          continue;
         }
+
+        processedNodes.add(el);
+        el.style.setProperty('display', 'none', 'important');
+        el.style.setProperty('visibility', 'hidden', 'important');
+        el.style.setProperty('height', '0', 'important');
+        el.style.setProperty('min-height', '0', 'important');
+        el.style.setProperty('margin', '0', 'important');
+        el.style.setProperty('padding', '0', 'important');
+        newlyBlocked++;
       }
 
       if (newlyBlocked > 0) {

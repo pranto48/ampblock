@@ -34,9 +34,14 @@
       return true;
     }
     try {
-      if (sessionStorage.getItem('__ampblock_whitelisted') === 'true' ||
-          sessionStorage.getItem('__ampblock_disabled') === 'true' ||
-          sessionStorage.getItem(BYPASS_KEY) === 'true') {
+      if (
+        currentHost === 'ampass.itsupport.com.bd' ||
+        currentHost === 'ampass.arif.bd' ||
+        currentHost.includes('supabase.co') ||
+        sessionStorage.getItem('__ampblock_whitelisted') === 'true' ||
+        sessionStorage.getItem('__ampblock_disabled') === 'true' ||
+        sessionStorage.getItem(BYPASS_KEY) === 'true'
+      ) {
         return true;
       }
     } catch (e) {}
@@ -270,6 +275,12 @@
   // Also intercept document.execCommand('copy')
   document.addEventListener('copy', (e) => {
     try {
+      // Never block legitimate user-intended copying in input/textarea, contenteditable, or AMPass UI
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.matches('input, textarea') || activeEl.isContentEditable || (activeEl.closest && activeEl.closest('[id^="ampass"]')))) {
+        return;
+      }
+
       const selection = window.getSelection() ? window.getSelection().toString() : '';
       const lower = selection.toLowerCase();
       const matched = dangerousCommandSignatures.filter(sig => lower.includes(sig));
@@ -301,11 +312,23 @@
       if (!winW || !winH) return;
 
       for (let i = 0; i < allDivs.length; i++) {
-        // Skip sentinel UI, Google One Tap, Facebook SDK, Turnstile, and standard dialogs
-        if (el.id === '__ampblock_quarantine_shield__' || el.closest('#__ampblock_quarantine_shield__')) continue;
+        const el = allDivs[i];
+        if (!el) continue;
+
+        // Skip sentinel UI, AMPass Password Vault elements, Google One Tap, Facebook SDK, Turnstile, and standard dialogs
+        if (el.id === '__ampblock_quarantine_shield__' || (el.closest && el.closest('#__ampblock_quarantine_shield__'))) continue;
         const idLower = (el.id || '').toLowerCase();
         const classLower = (el.className || '').toString().toLowerCase();
         if (
+          idLower.startsWith('ampblock') ||
+          idLower.startsWith('ampass') ||
+          idLower.includes('ampass') ||
+          classLower.includes('ampass') ||
+          classLower.includes('ampblock') ||
+          el.hasAttribute('data-ampass-detected') ||
+          el.hasAttribute('data-ampass-has-continue') ||
+          el.hasAttribute('data-ampass-submitting') ||
+          (el.closest && el.closest('[id^="ampass"], [id^="ampblock"], [class*="ampass"]')) ||
           idLower.includes('google') ||
           idLower.includes('credential') ||
           idLower.includes('fb-root') ||
@@ -492,6 +515,9 @@
     'firebaseio.com',
     'firebaseapp.com',
     'supabase.co',
+    'ofjwkzlawwvyzznbplkm.supabase.co',
+    'ampass.itsupport.com.bd',
+    'ampass.arif.bd',
     'amazonaws.com',
     'okta.com',
     'stytch.com',
@@ -504,6 +530,7 @@
 
   function isLegitimateAuthEndpoint(url) {
     if (!url) return false;
+    if (url.startsWith('chrome-extension:') || url.startsWith('moz-extension:')) return true;
     try {
       const parsed = new URL(url, window.location.href);
       return LEGITIMATE_AUTH_APIS.some(api => parsed.hostname === api || parsed.hostname.endsWith('.' + api));

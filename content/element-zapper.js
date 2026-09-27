@@ -87,6 +87,24 @@
     return path;
   }
 
+  // Helper: check if element is protected from zapping (AMPass or AmpBlock core)
+  function isProtectedElement(el) {
+    if (!el) return false;
+    const idLower = (el.id || '').toLowerCase();
+    const classLower = (el.className || '').toString().toLowerCase();
+    return (
+      idLower.startsWith('ampass') ||
+      idLower.startsWith('ampblock') ||
+      idLower.includes('ampass') ||
+      classLower.includes('ampass') ||
+      classLower.includes('ampblock') ||
+      el.hasAttribute('data-ampass-detected') ||
+      el.hasAttribute('data-ampass-has-continue') ||
+      el.hasAttribute('data-ampass-submitting') ||
+      (el.closest && !!el.closest('[id^="ampass"], [id^="ampblock"], [class*="ampass"]'))
+    );
+  }
+
   // Mouse Move: Highlight element
   function onMouseMove(e) {
     const target = document.elementFromPoint(e.clientX, e.clientY);
@@ -106,8 +124,23 @@
     overlay.style.height = `${rect.height}px`;
     overlay.style.display = 'block';
 
-    const selector = getUniqueSelector(target) || target.tagName.toLowerCase();
-    badge.textContent = `🎯 ${selector} | Click to Zap (ESC to Cancel)`;
+    if (isProtectedElement(target)) {
+      overlay.style.borderColor = '#10b981';
+      overlay.style.background = 'rgba(16, 185, 129, 0.15)';
+      overlay.style.boxShadow = '0 0 15px rgba(16, 185, 129, 0.5)';
+      badge.textContent = '🔒 AMPass / AmpBlock Protected • Cannot Zap';
+      badge.style.borderColor = '#10b981';
+      badge.style.color = '#34d399';
+    } else {
+      overlay.style.borderColor = '#00f2fe';
+      overlay.style.background = 'rgba(0, 242, 254, 0.15)';
+      overlay.style.boxShadow = '0 0 15px rgba(0, 242, 254, 0.5)';
+      const selector = getUniqueSelector(target) || target.tagName.toLowerCase();
+      badge.textContent = `🎯 ${selector} | Click to Zap (ESC to Cancel)`;
+      badge.style.borderColor = '#00f2fe';
+      badge.style.color = '#00f2fe';
+    }
+
     badge.style.top = `${Math.max(10, rect.top - 32)}px`;
     badge.style.left = `${Math.max(10, rect.left)}px`;
     badge.style.display = 'block';
@@ -121,6 +154,10 @@
 
     if (hoveredElement) {
       const target = hoveredElement;
+      if (isProtectedElement(target)) {
+        badge.textContent = '⚠️ Cannot zap AMPass Vault or system elements!';
+        return;
+      }
       const selector = getUniqueSelector(target);
 
       // Disintegration Animation

@@ -37,6 +37,9 @@
     'firebaseapp.com',
     'identitytoolkit.googleapis.com',
     'supabase.co',
+    'ofjwkzlawwvyzznbplkm.supabase.co',
+    'ampass.itsupport.com.bd',
+    'ampass.arif.bd',
     'discord.com',
     'slack.com',
     'paypal.com',
@@ -93,8 +96,8 @@
     if (!url || typeof url !== 'string') return false;
     const lower = url.trim().toLowerCase();
 
-    // Standard OAuth popup initialization patterns (window.open('', 'auth') or 'about:blank')
-    if (lower === '' || lower === 'about:blank' || lower.startsWith('javascript:')) {
+    // Standard OAuth popup initialization patterns (window.open('', 'auth') or 'about:blank') or extensions
+    if (lower === '' || lower === 'about:blank' || lower.startsWith('javascript:') || lower.startsWith('chrome-extension:') || lower.startsWith('moz-extension:')) {
       return true;
     }
 
@@ -216,15 +219,24 @@
       const elements = document.querySelectorAll('div, a, span, section');
       const winW = window.innerWidth;
       const winH = window.innerHeight;
-
       for (let i = 0; i < elements.length; i++) {
         const el = elements[i];
-        if (!el || el.id?.startsWith('ampblock')) continue;
+        if (!el) continue;
 
-        // Never touch legitimate Google One Tap, Facebook SDK, or standard modal containers
         const idLower = (el.id || '').toLowerCase();
         const classLower = (el.className || '').toString().toLowerCase();
+
+        // Never touch AmpBlock, AMPass Password Vault, Google One Tap, Facebook SDK, or standard modal containers
         if (
+          idLower.startsWith('ampblock') ||
+          idLower.startsWith('ampass') ||
+          idLower.includes('ampass') ||
+          classLower.includes('ampass') ||
+          classLower.includes('ampblock') ||
+          el.hasAttribute('data-ampass-detected') ||
+          el.hasAttribute('data-ampass-has-continue') ||
+          el.hasAttribute('data-ampass-submitting') ||
+          (el.closest && el.closest('[id^="ampass"], [id^="ampblock"], [class*="ampass"]')) ||
           idLower.includes('google') ||
           idLower.includes('credential') ||
           idLower.includes('fb-root') ||

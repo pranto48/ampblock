@@ -42,6 +42,9 @@ const TRUSTED_AUTH_HOSTS = [
   'firebaseapp.com',
   'identitytoolkit.googleapis.com',
   'supabase.co',
+  'ofjwkzlawwvyzznbplkm.supabase.co',
+  'ampass.itsupport.com.bd',
+  'ampass.arif.bd',
   'discord.com',
   'slack.com',
   'paypal.com',
@@ -74,9 +77,24 @@ const adTabKeywords = [
 function isAuthOrLegitimateUrl(url) {
   if (!url || typeof url !== 'string') return true; // Keep blank/pending tabs open!
   const lower = url.toLowerCase();
-  if (lower.startsWith('chrome://') || lower.startsWith('edge://') || lower.startsWith('about:')) return true;
+  if (
+    lower.startsWith('chrome://') ||
+    lower.startsWith('edge://') ||
+    lower.startsWith('about:') ||
+    lower.startsWith('chrome-extension://') ||
+    lower.startsWith('moz-extension://')
+  ) {
+    return true;
+  }
   if (TRUSTED_AUTH_HOSTS.some(auth => lower.includes(auth))) return true;
-  if (lower.includes('/oauth') || lower.includes('/signin') || lower.includes('/login') || lower.includes('/authorize') || lower.includes('redirect_uri')) {
+  if (
+    lower.includes('ampass') ||
+    lower.includes('/oauth') ||
+    lower.includes('/signin') ||
+    lower.includes('/login') ||
+    lower.includes('/authorize') ||
+    lower.includes('redirect_uri')
+  ) {
     return true;
   }
   return false;
@@ -121,6 +139,9 @@ chrome.runtime.onInstalled.addListener(async () => {
   }
   if (typeof data.threatsBlockedTotal === 'undefined') {
     await chrome.storage.local.set({ threatsBlockedTotal: 0 });
+  }
+  if (typeof data.ampassCompanionEnabled === 'undefined') {
+    await chrome.storage.local.set({ ampassCompanionEnabled: true });
   }
 
   setupContextMenus();
@@ -256,14 +277,19 @@ async function syncDynamicRules() {
       const newRules = [];
       let ruleId = 10000;
 
-      // 1. Always protect legitimate OAuth / SSO scripts and frames from being blocked
+      // 1. Always protect legitimate OAuth / SSO / Password Vault endpoints from being blocked
       const coreAuthHosts = [
         'accounts.google.com',
         'apis.google.com',
         'connect.facebook.net',
         'appleid.apple.com',
         'login.microsoftonline.com',
-        'github.com'
+        'github.com',
+        'ampass.itsupport.com.bd',
+        'ampass.arif.bd',
+        'supabase.co',
+        'identitytoolkit.googleapis.com',
+        'firestore.googleapis.com'
       ];
       for (const authHost of coreAuthHosts) {
         newRules.push({
@@ -284,6 +310,26 @@ async function syncDynamicRules() {
           }
         });
       }
+
+      // 2. Unconditionally allow AMPass extension network requests
+      newRules.push({
+        id: ruleId++,
+        priority: 250,
+        action: { type: 'allow' },
+        condition: {
+          initiatorDomains: ['inplekppjckeipiodgkjnipeafhadfni'],
+          resourceTypes: [
+            'main_frame',
+            'sub_frame',
+            'script',
+            'xmlhttprequest',
+            'ping',
+            'image',
+            'media',
+            'other'
+          ]
+        }
+      });
 
       // 2. Allow whitelisted domains (both as initiator and as destination)
       for (const domain of whitelistedDomains) {
@@ -382,13 +428,15 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       'whitelistedDomains',
       'totalBlocked',
       'sentinelEnabled',
-      'threatsBlockedTotal'
+      'threatsBlockedTotal',
+      'ampassCompanionEnabled'
     ]).then((data) => {
       const isEnabled = typeof data.isEnabled === 'boolean' ? data.isEnabled : true;
       const whitelistedDomains = data.whitelistedDomains || [];
       const totalBlocked = data.totalBlocked || 0;
       const sentinelEnabled = typeof data.sentinelEnabled === 'boolean' ? data.sentinelEnabled : true;
       const threatsBlockedTotal = data.threatsBlockedTotal || 0;
+      const ampassCompanionEnabled = typeof data.ampassCompanionEnabled === 'boolean' ? data.ampassCompanionEnabled : true;
       const isWhitelisted = whitelistedDomains.includes(domain);
       const pageBlocked = tabId ? (tabStats.get(tabId) || 0) : 0;
       const threatInfo = tabId ? (tabThreats.get(tabId) || { threatScore: 0, isQuarantined: false }) : { threatScore: 0, isQuarantined: false };
@@ -402,6 +450,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         whitelistedDomains,
         sentinelEnabled,
         threatsBlockedTotal,
+        ampassCompanionEnabled,
         threatScore: threatInfo.threatScore,
         isQuarantined: threatInfo.isQuarantined
       });
@@ -626,6 +675,51 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const newState = !sentinelEnabled;
       await chrome.storage.local.set({ sentinelEnabled: newState });
       sendResponse({ sentinelEnabled: newState });
+    });
+    return true;
+  }
+
+  // AMPass Companion Management Handlers
+  if (action === 'getAmpassStatus') {
+    const AMPASS_EXT_ID = 'inplekppjckeipiodgkjnipeafhadfni';
+    chrome.storage.local.get(['ampassCompanionEnabled']).then(({ ampassCompanionEnabled = true }) => {
+      if (chrome.management && chrome.management.get) {
+        chrome.management.get(AMPASS_EXT_ID, (info) => {
+          if (chrome.runtime.lastError || !info) {
+            sendResponse({
+              installed: false,
+              enabled: false,
+              companionEnabled: ampassCompanionEnabled,
+              extensionId: AMPASS_EXT_ID
+            });
+          } else {
+            sendResponse({
+              installed: true,
+              enabled: info.enabled,
+              version: info.version,
+              name: info.name,
+              companionEnabled: ampassCompanionEnabled,
+              extensionId: AMPASS_EXT_ID
+            });
+          }
+        });
+      } else {
+        sendResponse({
+          installed: false,
+          enabled: false,
+          companionEnabled: ampassCompanionEnabled,
+          extensionId: AMPASS_EXT_ID
+        });
+      }
+    });
+    return true;
+  }
+
+  if (action === 'toggleAmpassCompanion') {
+    chrome.storage.local.get(['ampassCompanionEnabled']).then(async ({ ampassCompanionEnabled = true }) => {
+      const newState = !ampassCompanionEnabled;
+      await chrome.storage.local.set({ ampassCompanionEnabled: newState });
+      sendResponse({ companionEnabled: newState });
     });
     return true;
   }

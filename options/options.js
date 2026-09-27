@@ -28,6 +28,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exportThreatsBtn = document.getElementById('exportThreatsBtn');
   const clearThreatsBtn = document.getElementById('clearThreatsBtn');
 
+  // AMPass Companion Elements
+  const ampassCompanionToggle = document.getElementById('ampassCompanionToggle');
+  const ampassOptionsStatusText = document.getElementById('ampassOptionsStatusText');
+  const ampassOptionsBadge = document.getElementById('ampassOptionsBadge');
+  const ampassOptionsOpenBtn = document.getElementById('ampassOptionsOpenBtn');
+
   function showNotification(msg, isError = false) {
     statusNotification.textContent = msg;
     statusNotification.style.color = isError ? '#f43f5e' : '#10b981';
@@ -54,6 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderWhitelistTable(whitelistedDomains);
         renderZapperRules(customRules);
         renderThreatsTable(threatIncidents);
+        checkAmpassOptionsStatus();
       }
     );
   }
@@ -364,6 +371,65 @@ document.addEventListener('DOMContentLoaded', async () => {
         checkUpdateBtn.disabled = false;
         checkUpdateBtn.textContent = '🔄 Check for Updates';
       }
+    });
+  }
+
+  // AMPass Options Status Checker
+  function checkAmpassOptionsStatus() {
+    chrome.runtime.sendMessage({ action: 'getAmpassStatus' }, (res) => {
+      if (chrome.runtime.lastError || !res) return;
+
+      if (ampassCompanionToggle) {
+        ampassCompanionToggle.checked = !!res.companionEnabled;
+      }
+
+      if (res.installed) {
+        if (res.enabled) {
+          ampassOptionsBadge.textContent = 'HARMONIZED';
+          ampassOptionsBadge.style.background = 'rgba(16, 185, 129, 0.2)';
+          ampassOptionsBadge.style.color = '#34d399';
+          ampassOptionsBadge.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+          ampassOptionsStatusText.innerHTML = `AMPass Secure Vault <strong>v${res.version || '1.109.0'}</strong> সক্রিয় রয়েছে। জিরো-কনফ্লিক্ট শিল্ড সম্পূর্ণ কার্যকর।`;
+          if (ampassOptionsOpenBtn) {
+            ampassOptionsOpenBtn.textContent = 'ভল্ট সেটিংস';
+            ampassOptionsOpenBtn.onclick = () => {
+              chrome.tabs.create({ url: `chrome-extension://${res.extensionId}/src/options/options.html` });
+            };
+          }
+        } else {
+          ampassOptionsBadge.textContent = 'DISABLED';
+          ampassOptionsBadge.style.background = 'rgba(244, 63, 94, 0.2)';
+          ampassOptionsBadge.style.color = '#f87171';
+          ampassOptionsBadge.style.borderColor = 'rgba(244, 63, 94, 0.4)';
+          ampassOptionsStatusText.textContent = 'অ্যাম্পাস এক্সটেনশন ইনস্টল আছে কিন্তু নিষ্ক্রিয় করা রয়েছে।';
+          if (ampassOptionsOpenBtn) {
+            ampassOptionsOpenBtn.textContent = 'এক্সটেনশন ম্যানেজার';
+            ampassOptionsOpenBtn.onclick = () => {
+              chrome.tabs.create({ url: 'chrome://extensions' });
+            };
+          }
+        }
+      } else {
+        ampassOptionsBadge.textContent = 'STANDBY';
+        ampassOptionsBadge.style.background = 'rgba(99, 102, 241, 0.2)';
+        ampassOptionsBadge.style.color = '#a5b4fc';
+        ampassOptionsBadge.style.borderColor = 'rgba(99, 102, 241, 0.4)';
+        ampassOptionsStatusText.textContent = 'অ্যাম্পাস ভল্ট ইনস্টল করা হলে স্বয়ংক্রিয়ভাবে জিরো-কনফ্লিক্ট প্রোটেকশন চালু হবে।';
+        if (ampassOptionsOpenBtn) {
+          ampassOptionsOpenBtn.textContent = 'ভল্ট ডাউনলোড';
+          ampassOptionsOpenBtn.onclick = () => {
+            chrome.tabs.create({ url: 'https://ampass.itsupport.com.bd' });
+          };
+        }
+      }
+    });
+  }
+
+  if (ampassCompanionToggle) {
+    ampassCompanionToggle.addEventListener('change', () => {
+      chrome.runtime.sendMessage({ action: 'toggleAmpassCompanion' }, (res) => {
+        showNotification(res && res.companionEnabled ? 'AMPass Companion Mode Enabled.' : 'AMPass Companion Mode Disabled.');
+      });
     });
   }
 

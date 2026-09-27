@@ -26,6 +26,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   const openSettingsBtn = document.getElementById('openSettingsBtn');
   const popupVersionPill = document.getElementById('popupVersionPill');
 
+  // AMPass Companion Elements
+  const ampassStatusBadge = document.getElementById('ampassStatusBadge');
+  const ampassSubStatus = document.getElementById('ampassSubStatus');
+  const ampassQuickActionBtn = document.getElementById('ampassQuickActionBtn');
+  const ampassStatusIcon = document.getElementById('ampassStatusIcon');
+
   if (popupVersionPill && chrome.runtime && chrome.runtime.getManifest) {
     popupVersionPill.textContent = 'v' + chrome.runtime.getManifest().version;
   }
@@ -127,6 +133,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         updateUIState(res);
         renderWhitelistDrawer();
+        updateAmpassCompanion();
       }
     );
   }
@@ -364,6 +371,50 @@ document.addEventListener('DOMContentLoaded', async () => {
         } else {
           window.close();
         }
+      });
+    });
+  }
+
+  // AMPass Companion Status Updater
+  function updateAmpassCompanion() {
+    if (!ampassStatusBadge) return;
+    chrome.runtime.sendMessage({ action: 'getAmpassStatus' }, (res) => {
+      if (chrome.runtime.lastError || !res) return;
+
+      if (res.installed) {
+        if (res.enabled) {
+          ampassStatusBadge.textContent = 'Harmonized';
+          ampassStatusBadge.className = 'ampass-status-badge active';
+          ampassSubStatus.textContent = `v${res.version || '1.109.0'} সংযুক্ত • জিরো-কনফ্লিক্ট শিল্ড কার্যকর`;
+          if (ampassStatusIcon) ampassStatusIcon.classList.add('connected');
+          if (ampassQuickActionBtn) ampassQuickActionBtn.textContent = 'ভল্ট সেটিংস';
+        } else {
+          ampassStatusBadge.textContent = 'Disabled';
+          ampassStatusBadge.className = 'ampass-status-badge disabled';
+          ampassSubStatus.textContent = 'অ্যাম্পাস এক্সটেনশন নিষ্ক্রিয় রয়েছে';
+          if (ampassStatusIcon) ampassStatusIcon.classList.remove('connected');
+          if (ampassQuickActionBtn) ampassQuickActionBtn.textContent = 'সক্রিয় করুন';
+        }
+      } else {
+        ampassStatusBadge.textContent = 'Ready';
+        ampassStatusBadge.className = 'ampass-status-badge standby';
+        ampassSubStatus.textContent = 'অ্যাম্পাস সিকিউর ভল্টের সাথে ১০০% সুরক্ষিত';
+        if (ampassStatusIcon) ampassStatusIcon.classList.remove('connected');
+        if (ampassQuickActionBtn) ampassQuickActionBtn.textContent = 'ভল্ট পেজ';
+      }
+    });
+  }
+
+  // AMPass Quick Action Click
+  if (ampassQuickActionBtn) {
+    ampassQuickActionBtn.addEventListener('click', () => {
+      chrome.runtime.sendMessage({ action: 'getAmpassStatus' }, (res) => {
+        if (res && res.installed) {
+          chrome.tabs.create({ url: `chrome-extension://${res.extensionId}/src/options/options.html` });
+        } else {
+          chrome.tabs.create({ url: 'https://ampass.itsupport.com.bd' });
+        }
+        window.close();
       });
     });
   }
