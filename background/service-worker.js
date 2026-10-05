@@ -125,6 +125,8 @@ chrome.runtime.onInstalled.addListener(async () => {
   if (!Array.isArray(data.whitelistedDomains)) {
     await chrome.storage.local.set({ whitelistedDomains: [] });
   }
+  // After initial defaults are set, load EasyList dynamic rules
+  await loadEasyListRules();
   if (typeof data.totalBlocked === 'undefined') {
     await chrome.storage.local.set({ totalBlocked: 0 });
   }
@@ -375,6 +377,83 @@ async function syncDynamicRules() {
       });
     } catch (err) {
     console.error('Failed to sync dynamic whitelist rules:', err);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// 3rd‑party EasyList integration – download the list once on install/update
+// and generate dynamic DNR rules. This keeps the extension lightweight while
+// still giving you up‑to‑date ad filtering without shipping a huge static
+// rule set.
+
+const EASYLIST_URL = 'https://easylist.to/easylist/easylist.txt';
+
+/**
+ * Fetch EasyList and return an array of URL patterns (strings).
+ */
+async function fetchEasyList() {
+  try {
+    const res = await fetch(EASYLIST_URL, { cache: 'no-cache' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const text = await res.text();
+    // EasyList contains comments (#), empty lines and rules in the form
+    // !Adblock Plus 2.0
+    // ||example.com^$domain=~www.example.com
+    // We only care about simple domain blocks: "||<domain>^"
+    const patterns = [];
+    for (const line of text.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#') || !trimmed.startsWith('||')) continue;
+      // Extract the domain part before the first ^ or $.
+      let domain = trimmed.slice(2);
+      const caretIndex = domain.indexOf('^');
+      if (caretIndex !== -1) domain = domain.slice(0, caretIndex);
+      patterns.push(`||${domain}^`); // keep the same format for DNR
+    }
+    return patterns;
+  } catch (e) {
+    console.error('Failed to fetch EasyList:', e);
+    return [];
+  }
+}
+
+/**
+ * Convert a list of urlFilter strings into DNR rule objects.
+ */
+function buildDynamicRules(patterns) {
+  const rules = [];
+  let id = 2000; // start after the static rules (1‑1999 are reserved)
+  for (const pattern of patterns) {
+    rules.push({
+      id,
+      priority: 100, // lower than the static ones
+      action: { type: 'block' },
+      condition: { urlFilter: pattern, resourceTypes: ['main_frame', 'sub_frame'] }
+    });
+    id++;
+  }
+  return rules;
+}
+
+/**
+ * Load EasyList and update dynamic DNR rules. Called on install or when the
+ * user manually refreshes via the options page.
+ */
+async function loadEasyListRules() {
+  const patterns = await fetchEasyList();
+  if (!patterns.length) return;
+  const newRules = buildDynamicRules(patterns);
+  try {
+    // Remove any existing dynamic rules we added before
+    const existing = await chrome.declarativeNetRequest.getDynamicRules();
+    const toRemove = existing.map(r => r.id).filter(id => id >= 2000);
+    if (toRemove.length) await chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: toRemove });
+
+    // Add the fresh rules
+    await chrome.declarativeNetRequest.updateDynamicRules({ addRules: newRules });
+    console.log(`Loaded ${newRules.length} EasyList dynamic DNR rules.`);
+  } catch (e) {
+    console.error('Error updating dynamic DNR rules:', e);
   }
 }
 
