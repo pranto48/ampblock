@@ -12,6 +12,38 @@
 
 (function () {
   'use strict';
+  // ---------------------------------------------------------------------
+  // Automatic ad scanner – removes any element that looks like an ad.
+  // This is a lightweight fallback for sites where the generic selectors
+  // miss some newer ad containers. It runs once on page load and reports
+  // the number of elements removed to the background script.
+  function scanAndRemoveAds() {
+    const adSelectors = [
+      'iframe[src*="ad"]',
+      'iframe[src*="ads"]',
+      '[class*="ad"]',
+      '[id*="ad"]',
+      '[class*="banner"]',
+      '[id*="banner"]',
+      '[class*="sponsor"]',
+      '[data-ad]',
+    ];
+
+    const nodes = document.querySelectorAll(adSelectors.join(','));
+    let removedCount = 0;
+    nodes.forEach((el) => {
+      if (!el.style.display || el.style.display !== 'none') {
+        el.remove();
+        removedCount++;
+      }
+    });
+
+    // Report to background
+    try {
+      chrome.runtime.sendMessage({ action: 'adScanReport', count: removedCount }, () => {});
+    } catch (e) {}
+    return removedCount;
+  }
 
   if (window.__ampblock_defuser_injected) return;
   window.__ampblock_defuser_injected = true;
