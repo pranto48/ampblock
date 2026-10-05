@@ -42,6 +42,10 @@
     '.ytp-ad-overlay-container',
     '.ytp-ad-message-container',
     '.ytp-ad-action-interstitial',
+    // New YouTube ad selectors for 2026 UI updates
+    '.ytp-ad-skip-button-container button',
+    '.ytp-ad-skip-button',
+    'tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)',
     '.ytp-ad-progress',
     '#rendering-content:has(ytd-ad-slot-renderer)',
     '.ytp-suggested-action-badge[data-ad]',
