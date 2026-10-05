@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "universal-memory": {
+      "url": "https://data48otnarp.arif.bd/",
+      "headers": {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer otnarp-secure-default-key-2026",
+        "x-device-id": "antigravity_ide_workstation",
+        "x-device-name": "Antigravity IDE (Arif Workstation)"
+      }
+    }
+  }
+}
