@@ -3434,7 +3434,7 @@
       "type": "block"
     },
     "condition": {
-      "urlFilter": "*://*.youtube.com/api/stats/atr*",
+      "urlFilter": "*://*.youtube.com/get_midroll_info*",
       "resourceTypes": [
         "main_frame",
         "sub_frame",

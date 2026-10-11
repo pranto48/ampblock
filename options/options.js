@@ -46,15 +46,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Load all settings
   function loadDashboard() {
     chrome.storage.local.get(
-      ['isEnabled', 'whitelistedDomains', 'customBlockedSelectors', 'totalBlocked', 'sentinelEnabled', 'threatIncidents', 'threatsBlockedTotal'],
+      ['isEnabled', 'whitelistedDomains', 'customBlockedSelectors', 'totalBlocked', 'sentinelEnabled', 'threatIncidents', 'threatsBlockedTotal', 'youtubeBusterEnabled', 'cosmeticFilterEnabled'],
       (data) => {
         const isEnabled = typeof data.isEnabled === 'boolean' ? data.isEnabled : true;
         const whitelistedDomains = data.whitelistedDomains || [];
         const customRules = data.customBlockedSelectors || {};
         const sentinelEnabled = typeof data.sentinelEnabled === 'boolean' ? data.sentinelEnabled : true;
         const threatIncidents = data.threatIncidents || [];
+        const youtubeBusterEnabled = typeof data.youtubeBusterEnabled === 'boolean' ? data.youtubeBusterEnabled : true;
+        const cosmeticFilterEnabled = typeof data.cosmeticFilterEnabled === 'boolean' ? data.cosmeticFilterEnabled : true;
 
         globalEngineToggle.checked = isEnabled;
+        if (youtubeBusterToggle) youtubeBusterToggle.checked = youtubeBusterEnabled;
+        if (cosmeticFilterToggle) cosmeticFilterToggle.checked = cosmeticFilterEnabled;
         if (sentinelMasterToggle) sentinelMasterToggle.checked = sentinelEnabled;
 
         renderWhitelistTable(whitelistedDomains);
@@ -194,6 +198,26 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   });
+
+  // Toggle YouTube Ultra Buster v6.0
+  if (youtubeBusterToggle) {
+    youtubeBusterToggle.addEventListener('change', () => {
+      const isYtEnabled = youtubeBusterToggle.checked;
+      chrome.storage.local.set({ youtubeBusterEnabled: isYtEnabled }, () => {
+        showNotification(isYtEnabled ? 'YouTube Ultra Buster v6.0 enabled.' : 'YouTube Ultra Buster v6.0 disabled.');
+      });
+    });
+  }
+
+  // Toggle Cosmetic Filter
+  if (cosmeticFilterToggle) {
+    cosmeticFilterToggle.addEventListener('change', () => {
+      const isCosmeticEnabled = cosmeticFilterToggle.checked;
+      chrome.storage.local.set({ cosmeticFilterEnabled: isCosmeticEnabled }, () => {
+        showNotification(isCosmeticEnabled ? 'Cosmetic Ad Filter enabled.' : 'Cosmetic Ad Filter disabled.');
+      });
+    });
+  }
 
   // Export Settings (JSON)
   exportSettingsBtn.addEventListener('click', () => {

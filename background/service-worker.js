@@ -473,9 +473,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
   if (action === 'getSiteStatus') {
     const domain = (request.domain || '').toLowerCase();
-    chrome.storage.local.get(['isEnabled', 'whitelistedDomains']).then(({ isEnabled = true, whitelistedDomains = [] }) => {
+    chrome.storage.local.get(['isEnabled', 'whitelistedDomains', 'youtubeBusterEnabled']).then(({ isEnabled = true, whitelistedDomains = [], youtubeBusterEnabled = true }) => {
       const isWhitelisted = whitelistedDomains.includes(domain);
-      sendResponse({ enabled: isEnabled, isWhitelisted });
+      const isYt = domain.includes('youtube.com');
+      const active = isEnabled && (!isYt || youtubeBusterEnabled);
+      sendResponse({ enabled: active, isWhitelisted, youtubeBusterEnabled });
     });
     return true;
   }

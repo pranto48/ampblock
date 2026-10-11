@@ -2,59 +2,77 @@
  * ==============================================================================
  * # Copyright (c) 2026 IT support BD (https://itsupport.com.bd)
  * # Made By Arif (https://arifmahmud.com/)
- * # Project: AmpBlock
+ * # Project: AmpBlock Pro
  * ==============================================================================
  *
- * AmpBlock - YouTube Ultra Buster Engine v5.0
- * Zero-latency video ad fast-forwarding, instant audio suppression, auto-skip dispatch,
- * shorts ad neutralizer, and anti-adblock enforcement modal terminator.
+ * AmpBlock - YouTube Ultra Buster Engine v6.0 (Isolated World Context)
+ *
+ * Responsibilities:
+ * 1. Cosmetic Ad Shielding: Injects high-performance CSS at document_start to
+ *    collapse banners, feeds, reels, shorts, promoted sparkles, and enforcement dialogs.
+ * 2. Main World Injector Guard: Ensures youtube-engine.js is loaded in the DOM.
+ * 3. Message Bridge: Relays blocked ad metrics from Main World to Background Service Worker.
+ * 4. Whitelist & Toggle Synchronization with Extension Popup & Options Dashboard.
  */
 
 (function () {
   'use strict';
 
-  if (window.__ampblock_yt_v5_injected) return;
-  window.__ampblock_yt_v5_injected = true;
+  if (window.__ampblock_yt_v6_injected) return;
+  window.__ampblock_yt_v6_injected = true;
 
   let isEnabled = true;
   let isWhitelisted = false;
   let ytBlockedAdsCount = 0;
-  let wasMutedByAdblock = false;
-  let originalVolume = null;
 
-  // Comprehensive cosmetic selectors for YouTube banners, feeds, reels and overlays
+  // Comprehensive cosmetic selectors for YouTube 2026 desktop and mobile UI
   const ytAdSelectors = [
     '#masthead-ad',
+    'ytd-masthead-ad-renderer',
+    'ytd-masthead-ad-v3-renderer',
     'ytd-ad-slot-renderer',
+    'ytd-in-feed-ad-layout-renderer',
     'ytd-rich-item-renderer:has(ytd-ad-slot-renderer)',
+    'ytd-rich-item-renderer:has(ytd-in-feed-ad-layout-renderer)',
     'ytd-rich-item-renderer:has(#ad-badge)',
+    'ytd-rich-item-renderer:has(.badge-shape-wiz--ad)',
     'ytd-promoted-sparkles-web-renderer',
+    'ytd-promoted-sparkles-text-search-renderer',
     'ytd-promoted-video-renderer',
     'ytd-display-ad-renderer',
     'ytd-companion-slot-renderer',
     'ytd-statement-banner-renderer',
-    'ytd-in-feed-ad-layout-renderer',
     'ytd-banner-promo-renderer',
     'ytd-action-companion-ad-renderer',
     'ytd-reel-video-renderer:has(.ytd-ad-slot-renderer)',
     'ytd-reel-video-renderer:has([aria-label*="Sponsored" i])',
+    'ytd-reel-video-renderer:has(.badge-shape-wiz--ad)',
+    'ytd-player-legacy-desktop-watch-ads-renderer',
+    'ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-ads"]',
     '#player-ads',
     '.ytp-ad-overlay-container',
+    '.ytp-ad-overlay-slot',
     '.ytp-ad-message-container',
     '.ytp-ad-action-interstitial',
-    // New YouTube ad selectors for 2026 UI updates
-    '.ytp-ad-skip-button-container button',
-    '.ytp-ad-skip-button',
-    'tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)',
+    '.ytp-ad-preview-container',
+    '.ytp-ad-persistent-progress-bar-container',
     '.ytp-ad-progress',
     '#rendering-content:has(ytd-ad-slot-renderer)',
     '.ytp-suggested-action-badge[data-ad]',
-    'ytd-mealbar-promo-renderer'
+    'ytd-mealbar-promo-renderer',
+    'ytd-merch-shelf-renderer',
+    'ytd-brand-video-singleton-renderer',
+    'ytd-search-pyv-renderer',
+    'tp-yt-paper-dialog:has(ytd-enforcement-message-view-model)',
+    'tp-yt-paper-dialog:has(#feedback)',
+    '#dialog.yt-mealbar-promo-renderer',
+    'ytd-popup-container:has(ytd-enforcement-message-view-model)',
+    '#main-container:has(ytd-enforcement-message-view-model)'
   ];
 
   // Inject CSS rules immediately for YouTube banners and enforcement modals
   function injectYouTubeCSS() {
-    const styleId = 'ampblock-yt-style-v5';
+    const styleId = 'ampblock-yt-style-v6';
     if (document.getElementById(styleId)) return;
 
     const style = document.createElement('style');
@@ -84,13 +102,51 @@
     (document.head || document.documentElement).appendChild(style);
   }
 
-  // Initialize and check status
+  function removeYouTubeCSS() {
+    const style = document.getElementById('ampblock-yt-style-v6');
+    if (style) style.remove();
+  }
+
+  // Ensure Main World engine is injected into the DOM
+  function ensureMainWorldEngine() {
+    if (document.getElementById('ampblock-yt-engine-script')) return;
+
+    try {
+      const script = document.createElement('script');
+      script.id = 'ampblock-yt-engine-script';
+      script.src = chrome.runtime.getURL('content/youtube-engine.js');
+      (document.head || document.documentElement).appendChild(script);
+    } catch (e) {}
+  }
+
+  // Report block metric to Service Worker
+  function reportBlock(count = 1) {
+    ytBlockedAdsCount += count;
+    chrome.runtime.sendMessage({
+      action: 'reportBlockedAds',
+      domain: window.location.hostname,
+      increment: count,
+      totalOnTab: ytBlockedAdsCount
+    }).catch(() => {});
+  }
+
+  // Listen for block notifications from youtube-engine.js (Main World)
+  window.addEventListener('message', (event) => {
+    if (event.source !== window || !event.data) return;
+    if (event.data.type === '__AMPBLOCK_YT_BLOCKED__') {
+      const count = Number(event.data.count) || 1;
+      reportBlock(count);
+    }
+  });
+
+  // Query background for site status and configure
   function init() {
     chrome.runtime.sendMessage(
       { action: 'getSiteStatus', domain: window.location.hostname },
       (response) => {
         if (chrome.runtime.lastError || !response) {
-          startBusterEngine();
+          injectYouTubeCSS();
+          ensureMainWorldEngine();
           return;
         }
         isEnabled = response.enabled;
@@ -98,169 +154,31 @@
 
         if (isEnabled && !isWhitelisted) {
           injectYouTubeCSS();
-          startBusterEngine();
+          ensureMainWorldEngine();
+        } else {
+          removeYouTubeCSS();
         }
       }
     );
   }
 
-  function reportBlock() {
-    ytBlockedAdsCount++;
-    chrome.runtime.sendMessage({
-      action: 'reportBlockedAds',
-      domain: window.location.hostname,
-      increment: 1,
-      totalOnTab: ytBlockedAdsCount
-    }).catch(() => {});
-  }
-
-  // Skip button selectors covering all YouTube iterations
-  const skipSelectors = [
-    '.ytp-ad-skip-button',
-    '.ytp-ad-skip-button-modern',
-    '.ytp-skip-ad-button',
-    '.ytp-ad-skip-button-slot',
-    'button.ytp-ad-skip-button-text',
-    'button[id^="skip-button"]',
-    '.ytp-ad-overlay-close-button',
-    '.ytp-ad-message-container button',
-    '[class*="ytp-ad-skip"]',
-    'button[aria-label*="Skip" i]'
-  ];
-
-  // Core Ultra-Fast Video Ad Neutralizer (Sub-15ms)
-  function handleVideoAds() {
-    if (!isEnabled || isWhitelisted) return;
-
-    const player = document.getElementById('movie_player') || document.querySelector('.html5-video-player');
-    const videos = document.querySelectorAll('video');
-
-    if (!player || videos.length === 0) return;
-
-    const isAdActive = player.classList.contains('ad-showing') ||
-                       player.classList.contains('ad-interrupting') ||
-                       Boolean(document.querySelector('.ytp-ad-player-overlay')) ||
-                       Boolean(document.querySelector('.video-ads.ytp-ad-module:not(:empty)')) ||
-                       Boolean(document.querySelector('.ytp-ad-preview-container')) ||
-                       Boolean(document.querySelector('.ytp-ad-text')) ||
-                       Boolean(document.querySelector('.ytp-ad-persistent-progress-bar-container'));
-
-    if (isAdActive) {
-      videos.forEach((video) => {
-        // 1. Instant Audio Mute (Prevent promotional sound blast)
-        if (!video.muted) {
-          video.muted = true;
-          wasMutedByAdblock = true;
-        }
-
-        // 2. Hyper 16x Fast-Forward to Terminal Keyframe
-        try {
-          if (video.playbackRate < 16) {
-            video.playbackRate = 16.0;
-          }
-          if (isFinite(video.duration) && video.duration > 0) {
-            video.currentTime = video.duration - 0.01;
-          }
-        } catch (e) {}
-      });
-
-      // 3. Dispatch Synthetic Click on All Skip Buttons
-      const buttons = document.querySelectorAll(skipSelectors.join(', '));
-      buttons.forEach((btn) => {
-        if (btn && typeof btn.click === 'function') {
-          btn.click();
-        }
-      });
-
-      // 4. Force movie_player skipAd API if exposed
-      try {
-        if (typeof player.skipAd === 'function') {
-          player.skipAd();
-        }
-      } catch (e) {}
-
-      reportBlock();
-    } else {
-      // Normal video resumed: restore sound and standard 1.0x playback rate
-      if (wasMutedByAdblock) {
-        videos.forEach((video) => {
-          video.muted = false;
-          if (video.playbackRate === 16.0) {
-            video.playbackRate = 1.0;
-          }
-        });
-        wasMutedByAdblock = false;
-      }
-    }
-  }
-
-  // Anti-Adblock Warning & Dialog Neutralizer
-  function neutralizeAntiAdblockModals() {
-    if (!isEnabled || isWhitelisted) return;
-
-    // 1. YouTube Enforcement Modal (Ad blockers violate terms...)
-    const enforcement = document.querySelector('ytd-enforcement-message-view-model');
-    if (enforcement) {
-      const dialog = enforcement.closest('tp-yt-paper-dialog') || enforcement;
-      dialog.remove();
-      reportBlock();
-
-      // Clear dark overlay backdrops
-      document.querySelectorAll('tp-yt-iron-overlay-backdrop').forEach(el => el.remove());
-
-      // Auto-resume paused playback
-      const video = document.querySelector('video');
-      if (video && video.paused) {
-        video.play().catch(() => {});
-      }
-    }
-
-    // 2. Generic and mealbar promotional modal dialogues
-    const dialogs = document.querySelectorAll('tp-yt-paper-dialog, ytd-mealbar-promo-renderer');
-    dialogs.forEach((dlg) => {
-      const txt = (dlg.textContent || '').toLowerCase();
-      if (txt.includes('ad blocker') || txt.includes('terms of service') || txt.includes('allow ads')) {
-        dlg.remove();
-        document.querySelectorAll('tp-yt-iron-overlay-backdrop').forEach(el => el.remove());
-        const video = document.querySelector('video');
-        if (video && video.paused) video.play().catch(() => {});
-      }
-    });
-  }
-
-  // Continuous Sub-15ms Monitoring loop
-  function startBusterEngine() {
-    // Ultra-responsive interval (40ms)
-    setInterval(() => {
-      handleVideoAds();
-      neutralizeAntiAdblockModals();
-    }, 40);
-
-    // Mutation Observer for instant layout mutations
-    const observer = new MutationObserver(() => {
-      handleVideoAds();
-      neutralizeAntiAdblockModals();
-    });
-
-    observer.observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-      attributes: true,
-      attributeFilter: ['class', 'src']
-    });
-  }
-
-  // Listen for message from popup
+  // Listen for message from popup & options
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === 'statusChanged') {
       isEnabled = msg.enabled;
       isWhitelisted = msg.isWhitelisted;
+      if (isEnabled && !isWhitelisted) {
+        injectYouTubeCSS();
+        ensureMainWorldEngine();
+      } else {
+        removeYouTubeCSS();
+      }
       sendResponse({ success: true, count: ytBlockedAdsCount });
     }
   });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', init, { once: true });
   } else {
     init();
   }
