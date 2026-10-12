@@ -24,6 +24,18 @@ function extractHostname(url) {
   }
 }
 
+// Helper: Check if domain or any parent domain is in whitelist
+function isDomainWhitelisted(domain, whitelistedDomains) {
+  if (!domain || !Array.isArray(whitelistedDomains) || whitelistedDomains.length === 0) return false;
+  const target = domain.toLowerCase().trim();
+  const rootTarget = target.replace(/^www\./, '');
+  return whitelistedDomains.some(d => {
+    if (!d) return false;
+    const cleanD = d.toLowerCase().trim().replace(/^www\./, '');
+    return target === cleanD || rootTarget === cleanD || target.endsWith('.' + cleanD);
+  });
+}
+
 // Trusted OAuth and Identity Providers (never auto-close tabs or popups)
 const TRUSTED_AUTH_HOSTS = [
   'accounts.google.com',
@@ -155,9 +167,21 @@ chrome.runtime.onInstalled.addListener(async () => {
   await syncDynamicRules();
 });
 
-// Auto-Kill Popup Tabs spawned by ad scripts
-chrome.tabs.onCreated.addListener((tab) => {
+// Auto-Kill Popup Tabs spawned by ad scripts (Exempting whitelisted sites)
+chrome.tabs.onCreated.addListener(async (tab) => {
   if (!tab.openerTabId) return; // Legitimate new tab created directly by user
+
+  // If opener tab belongs to a whitelisted domain, never auto-close its tabs/popups!
+  try {
+    const openerTab = await chrome.tabs.get(tab.openerTabId);
+    if (openerTab && openerTab.url) {
+      const openerHost = extractHostname(openerTab.url);
+      const { whitelistedDomains = [] } = await chrome.storage.local.get(['whitelistedDomains']);
+      if (isDomainWhitelisted(openerHost, whitelistedDomains)) {
+        return; // Opener site is whitelisted: allow all popups/ads
+      }
+    }
+  } catch (e) {}
 
   const targetUrl = tab.pendingUrl || tab.url || '';
   if (isAdTabUrl(targetUrl)) {
@@ -166,9 +190,20 @@ chrome.tabs.onCreated.addListener((tab) => {
   }
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // If tab was spawned by another tab and attempts to navigate to an ad network
   if (tab.openerTabId && changeInfo.url) {
+    try {
+      const openerTab = await chrome.tabs.get(tab.openerTabId);
+      if (openerTab && openerTab.url) {
+        const openerHost = extractHostname(openerTab.url);
+        const { whitelistedDomains = [] } = await chrome.storage.local.get(['whitelistedDomains']);
+        if (isDomainWhitelisted(openerHost, whitelistedDomains)) {
+          return; // Opener site is whitelisted: allow
+        }
+      }
+    } catch (e) {}
+
     if (isAdTabUrl(changeInfo.url)) {
       chrome.tabs.remove(tabId);
       console.warn('[AmpBlock] Auto-closed redirected ad tab:', changeInfo.url);
@@ -178,7 +213,18 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   if (changeInfo.status === 'loading') {
     tabStats.set(tabId, 0);
-    chrome.action.setBadgeText({ text: '', tabId });
+    const host = extractHostname(tab.url);
+    chrome.storage.local.get(['whitelistedDomains', 'isEnabled']).then(({ whitelistedDomains = [], isEnabled = true }) => {
+      if (!isEnabled) {
+        chrome.action.setBadgeText({ text: 'OFF', tabId });
+        chrome.action.setBadgeBackgroundColor({ color: '#666666', tabId });
+      } else if (isDomainWhitelisted(host, whitelistedDomains)) {
+        chrome.action.setBadgeText({ text: 'PASS', tabId });
+        chrome.action.setBadgeBackgroundColor({ color: '#10b981', tabId });
+      } else {
+        chrome.action.setBadgeText({ text: '', tabId });
+      }
+    });
   }
 });
 
@@ -333,40 +379,49 @@ async function syncDynamicRules() {
         }
       });
 
-      // 2. Allow whitelisted domains (both as initiator and as destination)
+      // 3. Unconditionally allow whitelisted domains (Entire frame hierarchy & all resource types)
       for (const domain of whitelistedDomains) {
         if (!domain) continue;
-        const rootDomain = domain.replace(/^www\./, '');
+        const rootDomain = domain.toLowerCase().trim().replace(/^www\./, '');
+        const domainVariants = [domain, rootDomain, `www.${rootDomain}`];
+
+        // A. allowAllRequests: Allows all requests within the frame hierarchy (including third-party ad iframes & scripts)
         newRules.push({
           id: ruleId++,
-          priority: 150,
-          action: { type: 'allow' },
+          priority: 300,
+          action: { type: 'allowAllRequests' },
           condition: {
-            initiatorDomains: [domain, rootDomain, `www.${rootDomain}`],
-            resourceTypes: [
-              'main_frame',
-              'sub_frame',
-              'script',
-              'image',
-              'xmlhttprequest',
-              'ping',
-              'media',
-              'other'
-            ]
+            initiatorDomains: domainVariants,
+            resourceTypes: ['main_frame', 'sub_frame']
           }
         });
 
-        // Also allow top-level navigation to whitelisted domain
         newRules.push({
           id: ruleId++,
-          priority: 150,
-          action: { type: 'allow' },
+          priority: 300,
+          action: { type: 'allowAllRequests' },
           condition: {
             urlFilter: `||${rootDomain}^`,
-            resourceTypes: [
-              'main_frame',
-              'sub_frame'
-            ]
+            resourceTypes: ['main_frame', 'sub_frame']
+          }
+        });
+
+        // B. Allow all sub-resources (scripts, images, stylesheets, fonts, xhr, ping, websocket, etc.)
+        newRules.push({
+          id: ruleId++,
+          priority: 250,
+          action: { type: 'allow' },
+          condition: {
+            initiatorDomains: domainVariants
+          }
+        });
+
+        newRules.push({
+          id: ruleId++,
+          priority: 250,
+          action: { type: 'allow' },
+          condition: {
+            urlFilter: `||${rootDomain}^`
           }
         });
       }
@@ -474,7 +529,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (action === 'getSiteStatus') {
     const domain = (request.domain || '').toLowerCase();
     chrome.storage.local.get(['isEnabled', 'whitelistedDomains', 'youtubeBusterEnabled']).then(({ isEnabled = true, whitelistedDomains = [], youtubeBusterEnabled = true }) => {
-      const isWhitelisted = whitelistedDomains.includes(domain);
+      const isWhitelisted = isDomainWhitelisted(domain, whitelistedDomains);
       const isYt = domain.includes('youtube.com');
       const active = isEnabled && (!isYt || youtubeBusterEnabled);
       sendResponse({ enabled: active, isWhitelisted, youtubeBusterEnabled });
@@ -518,7 +573,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       const sentinelEnabled = typeof data.sentinelEnabled === 'boolean' ? data.sentinelEnabled : true;
       const threatsBlockedTotal = data.threatsBlockedTotal || 0;
       const ampassCompanionEnabled = typeof data.ampassCompanionEnabled === 'boolean' ? data.ampassCompanionEnabled : true;
-      const isWhitelisted = whitelistedDomains.includes(domain);
+      const isWhitelisted = isDomainWhitelisted(domain, whitelistedDomains);
       const pageBlocked = tabId ? (tabStats.get(tabId) || 0) : 0;
       const threatInfo = tabId ? (tabThreats.get(tabId) || { threatScore: 0, isQuarantined: false }) : { threatScore: 0, isQuarantined: false };
 
@@ -588,7 +643,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
 
   if (action === 'toggleWhitelist') {
-    const domain = (request.domain || '').toLowerCase();
+    let domain = (request.domain || '').toLowerCase().trim();
+    try {
+      if (domain.startsWith('http')) {
+        domain = new URL(domain).hostname.toLowerCase();
+      }
+    } catch (e) {}
+
     if (!domain) {
       sendResponse({ error: 'Invalid domain' });
       return false;
@@ -598,11 +659,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       let updatedList;
       let isNowWhitelisted;
 
-      if (whitelistedDomains.includes(domain)) {
-        updatedList = whitelistedDomains.filter(d => d !== domain);
+      const alreadyWhitelisted = isDomainWhitelisted(domain, whitelistedDomains);
+
+      if (alreadyWhitelisted) {
+        const root = domain.replace(/^www\./, '');
+        updatedList = whitelistedDomains.filter(d => {
+          const cleanD = (d || '').toLowerCase().replace(/^www\./, '');
+          return cleanD !== root && d !== domain;
+        });
         isNowWhitelisted = false;
       } else {
-        updatedList = [...whitelistedDomains, domain];
+        const root = domain.replace(/^www\./, '');
+        updatedList = [...whitelistedDomains, root];
         isNowWhitelisted = true;
       }
 
@@ -622,11 +690,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       chrome.tabs.query({}, (tabs) => {
         for (const tab of tabs) {
           const tabHost = extractHostname(tab.url);
-          if (tabHost === domain || tabHost.endsWith('.' + domain)) {
+          if (isDomainWhitelisted(tabHost, updatedList)) {
             chrome.tabs.sendMessage(tab.id, {
               action: 'statusChanged',
               enabled: true,
-              isWhitelisted: isNowWhitelisted
+              isWhitelisted: true
+            }).catch(() => {});
+          } else if (isDomainWhitelisted(tabHost, [domain])) {
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'statusChanged',
+              enabled: true,
+              isWhitelisted: false
             }).catch(() => {});
           }
         }

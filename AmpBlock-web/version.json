@@ -6,11 +6,12 @@
   "fileSize": "78 KB",
   "manifestVersion": 3,
   "changelog": [
+    "Zero-Block Whitelist: allowAllRequests DNR rules (Priority 300) ensure allowed sites view completely normally",
+    "Nested Ad Iframes & Scriptlet Bypass: Native Google AdSense, Taboola & Outbrain render without mock interference",
+    "Opener Whitelist Tab Protection: Popups/ad tabs spawned by whitelisted sites are never auto-closed",
     "YouTube Ultra Buster v6.0 Zero-Latency Engine: Pre-emptive JSON Pruning (zero buffering/ads)",
     "Main-World Deep Interceptor: Dispatches native movie_player.skipAd() and suppresses telemetry",
     "Anti-Adblock Enforcement Modal Auto-Terminator & scroll-lock unlocker",
-    "Preserved YouTube Watch History & fixed DNR midroll targeting",
-    "Full cosmetic shield for 2026 YouTube desktop and mobile layouts",
-    "Dedicated YouTube Ultra Buster toggle in Options Dashboard"
+    "Preserved YouTube Watch History & fixed DNR midroll targeting"
   ]
 }

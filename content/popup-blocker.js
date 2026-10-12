@@ -74,8 +74,19 @@
     'wigetmedia'
   ];
 
+  // Listen for dynamic status synchronization from Isolated World
+  window.addEventListener('message', (event) => {
+    if (event.source !== window || !event.data || event.data.type !== '__AMPBLOCK_STATUS_SYNC__') return;
+    if (event.data.isWhitelisted || !event.data.isEnabled) {
+      window.__ampblock_whitelisted_active = true;
+    } else {
+      window.__ampblock_whitelisted_active = false;
+    }
+  });
+
   // Helper: Check if site is whitelisted or protection is globally disabled
   function isSiteWhitelistedOrDisabled() {
+    if (window.__ampblock_whitelisted_active) return true;
     if (document.documentElement) {
       if (document.documentElement.dataset.ampblockWhitelisted === 'true' ||
           document.documentElement.dataset.ampblockDisabled === 'true') {

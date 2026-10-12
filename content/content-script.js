@@ -20,6 +20,28 @@
   const currentHost = window.location.hostname.toLowerCase();
   let isEnabled = true;
   let isWhitelisted = false;
+
+  // Immediately check if domain was already saved as whitelisted in sessionStorage
+  try {
+    if (sessionStorage.getItem('__ampblock_whitelisted') === 'true') {
+      isWhitelisted = true;
+    }
+    if (sessionStorage.getItem('__ampblock_disabled') === 'true') {
+      isEnabled = false;
+    }
+  } catch (e) {}
+
+  function isHostInWhitelist(host, list) {
+    if (!host || !Array.isArray(list) || list.length === 0) return false;
+    const cleanHost = host.toLowerCase().trim();
+    const rootHost = cleanHost.replace(/^www\./, '');
+    return list.some(item => {
+      if (!item) return false;
+      const cleanItem = item.toLowerCase().trim().replace(/^www\./, '');
+      return cleanHost === cleanItem || rootHost === cleanItem || cleanHost.endsWith('.' + cleanItem);
+    });
+  }
+
   let blockedCount = 0;
   const processedNodes = new WeakSet();
   let observer = null;
@@ -142,6 +164,14 @@
         el.style.removeProperty('margin');
         el.style.removeProperty('padding');
       }
+
+      // Also ensure ad iframes and dynamically loaded slots are unhidden
+      const adIframes = document.querySelectorAll('iframe, [data-ad], [data-ad-slot], ins.adsbygoogle');
+      for (let i = 0; i < adIframes.length; i++) {
+        const el = adIframes[i];
+        el.style.removeProperty('display');
+        el.style.removeProperty('visibility');
+      }
     } catch (e) {}
   }
 
@@ -180,8 +210,7 @@
     chrome.storage.local.get(['isEnabled', 'whitelistedDomains'], (data) => {
       const enabled = typeof data.isEnabled === 'boolean' ? data.isEnabled : true;
       const whitelistedDomains = data.whitelistedDomains || [];
-      const whitelisted = whitelistedDomains.includes(currentHost) ||
-                          whitelistedDomains.some(d => currentHost.endsWith('.' + d));
+      const whitelisted = isHostInWhitelist(currentHost, whitelistedDomains);
 
       isEnabled = enabled;
       isWhitelisted = whitelisted;
@@ -196,6 +225,7 @@
       } else {
         removeCosmeticCSS();
         restoreHiddenElements();
+        if (observer) observer.disconnect();
       }
     });
   }

@@ -24,9 +24,25 @@
   const currentHost = window.location.hostname.toLowerCase();
   const currentUrl = window.location.href;
 
+  // Listen for dynamic status synchronization from Isolated World
+  window.addEventListener('message', (event) => {
+    if (event.source !== window || !event.data || event.data.type !== '__AMPBLOCK_STATUS_SYNC__') return;
+    if (event.data.isWhitelisted || !event.data.isEnabled) {
+      window.__ampblock_whitelisted_active = true;
+      // If quarantined, remove overlay immediately
+      const quarantineRoot = document.getElementById('ampblock-quarantine-root');
+      if (quarantineRoot) quarantineRoot.remove();
+      if (document.documentElement) document.documentElement.style.removeProperty('overflow');
+      if (document.body) document.body.style.removeProperty('overflow');
+    } else {
+      window.__ampblock_whitelisted_active = false;
+    }
+  });
+
   // Check if current site is exempted / whitelisted or protection is disabled
   const BYPASS_KEY = '__ampblock_bypass_' + currentHost;
   function isSentinelBypassed() {
+    if (window.__ampblock_whitelisted_active) return true;
     if (document.documentElement && (
       document.documentElement.dataset.ampblockWhitelisted === 'true' ||
       document.documentElement.dataset.ampblockDisabled === 'true'

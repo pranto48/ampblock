@@ -163,6 +163,8 @@
   // 3. Patch ytcfg Experiment Flags to suppress ad injection & reporting
   // ---------------------------------------------------------------------------
   function patchYtcfg() {
+    checkDomState();
+    if (!isEnabled || isWhitelisted) return;
     try {
       if (window.ytcfg && typeof window.ytcfg.get === 'function') {
         const flags = window.ytcfg.get('EXPERIMENT_FLAGS');
