@@ -320,7 +320,7 @@ async function syncDynamicRules() {
     // Build whitelist override rules & auth provider protection
     try {
       const existingRules = await chrome.declarativeNetRequest.getDynamicRules();
-      const existingRuleIds = existingRules.map(r => r.id);
+      const existingWhitelistRuleIds = existingRules.map(r => r.id).filter(id => id >= 10000);
 
       const newRules = [];
       let ruleId = 10000;
@@ -427,7 +427,7 @@ async function syncDynamicRules() {
       }
 
       await chrome.declarativeNetRequest.updateDynamicRules({
-        removeRuleIds: existingRuleIds,
+        removeRuleIds: existingWhitelistRuleIds,
         addRules: newRules
       });
     } catch (err) {
@@ -478,12 +478,16 @@ async function fetchEasyList() {
 function buildDynamicRules(patterns) {
   const rules = [];
   let id = 2000; // start after the static rules (1‑1999 are reserved)
-  for (const pattern of patterns) {
+  const safePatterns = patterns.slice(0, 3000);
+  for (const pattern of safePatterns) {
     rules.push({
       id,
       priority: 100, // lower than the static ones
       action: { type: 'block' },
-      condition: { urlFilter: pattern, resourceTypes: ['main_frame', 'sub_frame'] }
+      condition: {
+        urlFilter: pattern,
+        resourceTypes: ['main_frame', 'sub_frame', 'script', 'image', 'xmlhttprequest', 'ping', 'media', 'other']
+      }
     });
     id++;
   }

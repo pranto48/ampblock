@@ -32,18 +32,18 @@ console.log(`📦 Packaging AmpBlock Pro v${version}...`);
 const versionInfo = {
   name: "AmpBlock Pro",
   version: version,
-  releaseDate: "2026-10-11",
+  releaseDate: "2026-10-24",
   downloadUrl: "https://ampblock.itsupport.com.bd/downloads/AmpBlock-Pro.zip",
-  fileSize: "78 KB",
+  fileSize: "185 KB",
   manifestVersion: 3,
   changelog: [
-    "Zero-Block Whitelist: allowAllRequests DNR rules (Priority 300) ensure allowed sites view completely normally",
-    "Nested Ad Iframes & Scriptlet Bypass: Native Google AdSense, Taboola & Outbrain render without mock interference",
-    "Opener Whitelist Tab Protection: Popups/ad tabs spawned by whitelisted sites are never auto-closed",
-    "YouTube Ultra Buster v6.0 Zero-Latency Engine: Pre-emptive JSON Pruning (zero buffering/ads)",
-    "Main-World Deep Interceptor: Dispatches native movie_player.skipAd() and suppresses telemetry",
-    "Anti-Adblock Enforcement Modal Auto-Terminator & scroll-lock unlocker",
-    "Preserved YouTube Watch History & fixed DNR midroll targeting"
+    "DNR Ultra Core Expansion: 2,450+ high-efficiency static rules blocking global ad networks, video ads, popunders, and trackers",
+    "Anti-Adblock Defuser v3.0: Comprehensive Google Publisher Tag (GPT), Prebid.js, and Amazon APSTag chaining mocks",
+    "Anti-Adblock Bait Element Defuser: 'nobab' protocol intercepts offsetHeight/offsetWidth checks to prevent anti-adblock walls",
+    "Cookie Consent & GDPR Annoyance Neutralizer: Silently collapses intrusive consent modals and restores page scroll lock",
+    "YouTube Ultra Buster v6.5: Pre-emptive JSON Pruning, sub-millisecond skip triggers, SSAI video speed-skipping, and full watch history preservation",
+    "Popunder, History Flood & BeforeUnload Trap Defense: Blocks rogue redirect loops and back-button hijackers",
+    "100% Zero-Block Whitelist & AMPass Secure Vault Harmony preserved"
   ]
 };
 

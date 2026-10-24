@@ -273,6 +273,33 @@
         blockedCount += newlyBlocked;
         notifyBackground(newlyBlocked);
       }
+      unlockPageScroll();
+    } catch (e) {}
+  }
+
+  // Automatic Scroll Unlocker (Restores scrolling when modals/banners lock overflow)
+  function unlockPageScroll() {
+    if (!isEnabled || isWhitelisted) return;
+    try {
+      const docEl = document.documentElement;
+      const body = document.body;
+      if (docEl) {
+        const docStyle = window.getComputedStyle(docEl);
+        if (docStyle.overflow === 'hidden' || docStyle.overflowY === 'hidden') {
+          docEl.style.setProperty('overflow', 'auto', 'important');
+          docEl.style.setProperty('overflow-y', 'auto', 'important');
+        }
+      }
+      if (body) {
+        const bodyStyle = window.getComputedStyle(body);
+        if (bodyStyle.overflow === 'hidden' || bodyStyle.overflowY === 'hidden' || bodyStyle.position === 'fixed') {
+          body.style.setProperty('overflow', 'auto', 'important');
+          body.style.setProperty('overflow-y', 'auto', 'important');
+          if (bodyStyle.position === 'fixed') {
+            body.style.setProperty('position', 'static', 'important');
+          }
+        }
+      }
     } catch (e) {}
   }
 

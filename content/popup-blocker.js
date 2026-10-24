@@ -222,7 +222,37 @@
     }
   }, true);
 
-  // 4. Neutralize transparent click-traps without breaking Google One Tap, dialogs, or modals
+  // 4. Prevent Malicious History Flooding & Back-Button Traps
+  try {
+    let lastHistoryPush = 0;
+    let pushCountInWindow = 0;
+    const origPushState = history.pushState;
+    history.pushState = function (state, title, url) {
+      if (isSiteWhitelistedOrDisabled()) {
+        return origPushState.apply(this, arguments);
+      }
+      const now = Date.now();
+      if (now - lastHistoryPush < 1000) {
+        pushCountInWindow++;
+        if (pushCountInWindow > 4) {
+          console.warn('[AmpBlock] Throttled rapid history.pushState flood');
+          return;
+        }
+      } else {
+        pushCountInWindow = 1;
+        lastHistoryPush = now;
+      }
+      return origPushState.apply(this, arguments);
+    };
+  } catch (e) {}
+
+  // 5. Neutralize beforeunload hostage dialogs spawned by piracy/streaming ads
+  window.addEventListener('beforeunload', (e) => {
+    if (isSiteWhitelistedOrDisabled()) return;
+    e.stopPropagation();
+  }, true);
+
+  // 6. Neutralize transparent click-traps without breaking Google One Tap, dialogs, or modals
   function removeClickTraps() {
     if (isSiteWhitelistedOrDisabled()) return;
 

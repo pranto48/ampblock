@@ -135,7 +135,59 @@ ytd-reel-video-renderer:has(.ytd-ad-slot-renderer),
 .ytp-ad-message-container,
 .ytp-ad-action-interstitial,
 .ytp-ad-progress,
-#rendering-content:has(ytd-ad-slot-renderer) {
+#rendering-content:has(ytd-ad-slot-renderer),
+
+/* ==============================================================================
+   5. COOKIE & GDPR CONSENT ANNOYANCE BANNERS
+   ============================================================================== */
+#onetrust-consent-sdk,
+#onetrust-banner-sdk,
+.ot-floating-button,
+.ot-sdk-container,
+#didomi-host,
+#didomi-notice,
+#didomi-popup,
+#CybotCookiebotDialog,
+#CybotCookiebotDialogBodyUnderlay,
+.cc-banner,
+.cc-window,
+.cc-floating,
+.cookie-notice-container,
+#cookie-notice,
+#cookie-law-info-bar,
+#qc-cmp2-container,
+.qc-cmp-ui-container,
+.evidon-banner,
+#_evidon-barrier,
+div[id*="cookie-banner" i],
+div[class*="cookie-banner" i],
+div[id*="cookie-consent" i],
+div[class*="cookie-consent" i],
+div[id*="gdpr-banner" i],
+div[class*="gdpr-banner" i],
+div[id*="consent-banner" i],
+
+/* ==============================================================================
+   6. SOCIAL MEDIA SPONSORED POSTS & PROMOTED ADS
+   ============================================================================== */
+div[role="feed"] div:has(> a[href*="/ads/about"]),
+div[data-testid="cellInnerDiv"]:has([data-testid="placementTracking"]),
+[data-testid="trend"]:has([data-testid="promotedTrendTag"]),
+div[data-promoted="true"],
+.promotedlink,
+shreddit-post[is-sponsored="true"],
+[aria-label*="Sponsored" i],
+[aria-label*="Promoted" i],
+
+/* ==============================================================================
+   7. VIDEO PLAYER FLOATING ADS & OVERLAYS
+   ============================================================================== */
+.jw-ad-container,
+.jw-ad-ui,
+.fluid_ad_container,
+.fluid_vast_wrapper,
+.video-ad-overlay,
+.player-ad-overlay {
   display: none !important;
   visibility: hidden !important;
   opacity: 0 !important;

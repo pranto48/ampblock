@@ -1332,3 +1332,69 @@ input:checked + .slider:before {
   transform: translateY(-1px);
 }
 
+/* ==============================================================================
+   Engine Badges Grid & Pills (v2.0 Ultra)
+   ============================================================================== */
+.engine-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.engine-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 12px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius-sm, 10px);
+  backdrop-filter: blur(12px);
+  font-size: 11px;
+}
+
+.engine-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.engine-dot.red {
+  background: #ff0033;
+  box-shadow: 0 0 8px rgba(255, 0, 51, 0.7);
+}
+
+.engine-dot.cyan {
+  background: #00f2fe;
+  box-shadow: 0 0 8px rgba(0, 242, 254, 0.7);
+}
+
+.engine-dot.emerald {
+  background: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.7);
+}
+
+.engine-dot.purple {
+  background: #a855f7;
+  box-shadow: 0 0 8px rgba(168, 85, 247, 0.7);
+}
+
+.engine-tag {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+
+.engine-tag.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+
