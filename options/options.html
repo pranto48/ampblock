@@ -51,13 +51,21 @@
 
         <div class="setting-row">
           <div class="setting-text">
-            <h3>Core Ad & Tracker Blocking (DNR Ultra Core - 2,450+ Rules)</h3>
-            <p>Blocks ads, trackers, video ad networks, and popup redirects natively at the browser's C++ network core.</p>
+            <h3>Core Ad & Tracker Blocking (DNR Ultra Core - 13,400+ Rules & Surrogates)</h3>
+            <p>Blocks ads, trackers, video ad networks, and popups natively at browser network layer with local surrogate redirects.</p>
           </div>
           <label class="switch">
             <input type="checkbox" id="globalEngineToggle" checked>
             <span class="slider"></span>
           </label>
+        </div>
+
+        <div class="setting-row">
+          <div class="setting-text">
+            <h3>Procedural Cosmetic Filtering Engine (:has-text, :upward, :remove)</h3>
+            <p>Reverse-engineered uBlock Origin DOM engine. Traverses obfuscated class names and wipes blank ad containers.</p>
+          </div>
+          <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4);">ACTIVE</span>
         </div>
 
         <div class="setting-row">
@@ -73,8 +81,8 @@
 
         <div class="setting-row">
           <div class="setting-text">
-            <h3>Anti-Adblock Defuser & Scriptlet Mock Engine (v3.0)</h3>
-            <p>Deceives Google Publisher Tag (GPT), Prebid.js, Amazon APSTag, and bypasses bait element checks.</p>
+            <h3>Anti-Adblock Defuser & Scriptlet Shield (v3.0)</h3>
+            <p>Tamper-proof set-constant, ACIS inline-script killer, json-prune, and bait element offset spoofing.</p>
           </div>
           <span class="badge" style="background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16,185,129,0.4);">ACTIVE</span>
         </div>

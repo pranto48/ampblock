@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "AmpBlock Pro",
-  "version": "2.0.0",
-  "description": "Ultra-powerful Ad & Popup Blocker — 2,450+ DNR Rules, YouTube Ultra Buster v6.5, GPT/Prebid Anti-Adblock Defuser v3.0, Cookie & Annoyance Neutralizer, Element Zapper, and AMPass Harmony.",
+  "version": "2.5.0",
+  "description": "Ultra-powerful Ad, Tracker & Popup Blocker — 5,000+ DNR Rules with Local Surrogates, Procedural Cosmetic Engine, Scriptlet Library, YouTube Ultra Buster v6.5, and AMPass Harmony.",
   "author": "Arif (https://arifmahmud.com/)",
   "homepage_url": "https://itsupport.com.bd",
   "icons": {
@@ -54,6 +54,7 @@
         "<all_urls>"
       ],
       "js": [
+        "content/scriptlet-engine.js",
         "content/ad-defuser.js",
         "content/popup-blocker.js",
         "content/security-sentinel.js"
@@ -66,7 +67,8 @@
         "<all_urls>"
       ],
       "js": [
-        "content/content-script.js"
+        "content/content-script.js",
+        "content/procedural-filter.js"
       ],
       "run_at": "document_start"
     },
@@ -97,7 +99,14 @@
         "content/element-zapper.js",
         "content/security-sentinel.js",
         "content/quarantine-shield.css",
-        "content/cosmetic-filter.css"
+        "content/cosmetic-filter.css",
+        "resources/surrogates/noop.js",
+        "resources/surrogates/google-analytics.js",
+        "resources/surrogates/ga-surrogate.js",
+        "resources/surrogates/gpt.js",
+        "resources/surrogates/gpt-surrogate.js",
+        "resources/surrogates/pixel.png",
+        "resources/surrogates/1x1-transparent.png"
       ],
       "matches": [
         "<all_urls>"

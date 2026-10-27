@@ -32,15 +32,15 @@ console.log(`📦 Packaging AmpBlock Pro v${version}...`);
 const versionInfo = {
   name: "AmpBlock Pro",
   version: version,
-  releaseDate: "2026-10-24",
+  releaseDate: "2026-10-27",
   downloadUrl: "https://ampblock.itsupport.com.bd/downloads/AmpBlock-Pro.zip",
-  fileSize: "185 KB",
+  fileSize: "280 KB",
   manifestVersion: 3,
   changelog: [
-    "DNR Ultra Core Expansion: 2,450+ high-efficiency static rules blocking global ad networks, video ads, popunders, and trackers",
-    "Anti-Adblock Defuser v3.0: Comprehensive Google Publisher Tag (GPT), Prebid.js, and Amazon APSTag chaining mocks",
-    "Anti-Adblock Bait Element Defuser: 'nobab' protocol intercepts offsetHeight/offsetWidth checks to prevent anti-adblock walls",
-    "Cookie Consent & GDPR Annoyance Neutralizer: Silently collapses intrusive consent modals and restores page scroll lock",
+    "DNR Ultra Core Expansion: 13,400+ high-efficiency static rules blocking global ad networks, video ads, popunders, and trackers",
+    "uBlock Origin Procedural Cosmetic Engine: Dynamic :has-text, :upward, and :remove DOM traversal supporting English and Bengali ('বিজ্ঞাপন', 'স্পন্সরড')",
+    "Modular Scriptlet Injection Shield: Tamper-proof set-constant, ACIS inline-script killer, json-prune, and bait element offset spoofing",
+    "Local Surrogate Redirection Engine: Redirects Google Analytics, GPT, and tracking beacons to internal mock scripts to eliminate script.onerror detection",
     "YouTube Ultra Buster v6.5: Pre-emptive JSON Pruning, sub-millisecond skip triggers, SSAI video speed-skipping, and full watch history preservation",
     "Popunder, History Flood & BeforeUnload Trap Defense: Blocks rogue redirect loops and back-button hijackers",
     "100% Zero-Block Whitelist & AMPass Secure Vault Harmony preserved"
@@ -68,7 +68,7 @@ if (Test-Path $zipPath) {
 $zip = [System.IO.Compression.ZipFile]::Open($zipPath, [System.IO.Compression.ZipArchiveMode]::Create)
 $baseDir = (Get-Item -LiteralPath .).FullName
 
-$items = @('manifest.json', 'README.md', 'background', 'content', 'icons', 'options', 'popup', 'rules')
+$items = @('manifest.json', 'README.md', 'background', 'content', 'icons', 'options', 'popup', 'rules', 'resources')
 
 foreach ($item in $items) {
     $fullPath = Join-Path $baseDir $item
