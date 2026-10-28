@@ -1,5 +1,48 @@
+# ==============================================================================
+# Robots.txt for AmpBlock Pro (https://ampblock.itsupport.com.bd/)
+# Optimized for Google, Bing, Yahoo, DuckDuckGo, Baidu, Yandex & Apple Search
+# ==============================================================================
+
 User-agent: *
 Allow: /
+Allow: /assets/
+Allow: /downloads/
+Disallow:
 
+User-agent: Googlebot
+Allow: /
+Allow: /assets/
+Allow: /downloads/
+
+User-agent: Googlebot-Image
+Allow: /assets/
+
+User-agent: Bingbot
+Allow: /
+Allow: /assets/
+Allow: /downloads/
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: Applebot
+Allow: /
+
+User-agent: Twitterbot
+Allow: /
+
+User-agent: facebookexternalhit
+Allow: /
+
+# Canonical Sitemaps
 Sitemap: https://ampblock.itsupport.com.bd/sitemap.xml
 Host: ampblock.itsupport.com.bd

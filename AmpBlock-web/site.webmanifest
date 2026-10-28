@@ -1,0 +1,30 @@
+{
+  "name": "AmpBlock Pro — #1 Ultra-Fast Ad Blocker",
+  "short_name": "AmpBlock",
+  "description": "Next-generation Manifest V3 ad blocker for Chrome, Edge, and Chromium browsers with 13,400+ DNR rules and YouTube Ultra Buster v6.5.",
+  "start_url": "/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#1a73e8",
+  "categories": ["utilities", "productivity", "security"],
+  "icons": [
+    {
+      "src": "assets/icon16.png",
+      "sizes": "16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon48.png",
+      "sizes": "48x48",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icon128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
